@@ -1,0 +1,39 @@
+#!/usr/bin/env ruby
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+require "json"
+require "cloudtwin"
+
+def read_json(path)
+  JSON.parse(File.read(path))
+end
+
+command = ARGV.shift
+case command
+when "compare"
+  baseline = ARGV.shift
+  proposed = ARGV.shift
+  principal = ARGV.shift
+  abort "usage: cloudtwin compare BASELINE.json PROPOSED.json PRINCIPAL_ID [ACTION]" unless baseline && proposed && principal
+  puts JSON.pretty_generate(CloudTwin::Counterfactual.compare(baseline: read_json(baseline), proposed: read_json(proposed), principal_id: principal, action: ARGV.shift || "s3:GetObject").map(&:to_h))
+when "validate"
+  fixture = ARGV.shift
+  live = ARGV.delete("--live")
+  abort "usage: cloudtwin validate SCENARIO.json [--live]" unless fixture
+  scenario = read_json(fixture)
+  client = nil
+  if live
+    begin
+      require "aws-sdk-iam"
+      client = Aws::IAM::Client.new
+    rescue LoadError
+      abort "--live requires the optional aws-sdk-iam gem"
+    end
+  end
+  validator = CloudTwin::AwsValidator.new(live: !!live, client: client)
+  result = validator.validate(policy: scenario.fetch("policy"), action: scenario.fetch("action"), resource: scenario.fetch("resource"), context: scenario["context"] || {}, principal_arn: scenario["principal_arn"])
+  puts JSON.pretty_generate(result.reject { |key, _| key == :raw })
+else
+  warn "usage: cloudtwin compare BASELINE.json PROPOSED.json PRINCIPAL_ID [ACTION]"
+  warn "       cloudtwin validate SCENARIO.json [--live]"
+  exit 1
+end

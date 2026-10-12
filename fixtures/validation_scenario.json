@@ -1,0 +1,6 @@
+{
+  "policy": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "s3:GetObject", "Resource": "arn:aws:s3:::research-private/*"}]},
+  "action": "s3:GetObject",
+  "resource": "arn:aws:s3:::research-private/sample.json",
+  "context": {}
+}

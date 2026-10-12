@@ -1,0 +1,9 @@
+{
+  "principals": [{
+    "id": "arn:aws:iam::111122223333:user/researcher",
+    "type": "user",
+    "policy": {"Statement": [{"Effect": "Allow", "Action": "s3:GetObject", "Resource": "arn:aws:s3:::research-private/*"}]}
+  }],
+  "roles": [],
+  "resources": [{"arn": "arn:aws:s3:::research-private/*", "type": "s3", "sensitive": true}]
+}
