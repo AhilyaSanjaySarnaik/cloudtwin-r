@@ -70,16 +70,54 @@ class CloudTwinTest < Minitest::Test
   def test_aws_validator_is_dry_run_by_default
     result = CloudTwin::AwsValidator.new.validate(policy: policy("Effect" => "Allow"), action: "s3:GetObject", resource: BUCKET)
     assert_equal "DRY_RUN", result[:status]
+    assert_nil result[:aws_decision]
   end
 
-  def test_aws_validator_maps_mocked_simulator_response_without_credentials
-    response = Struct.new(:evaluation_results).new([Struct.new(:eval_decision).new("allowed")])
+  def test_aws_validator_normalizes_all_simulator_decisions
+    { "allowed" => "ALLOWED", "explicitDeny" => "DENIED", "implicitDeny" => "DENIED" }.each do |decision, expected_status|
+      result = aws_result(decision)
+      assert_equal expected_status, result[:status]
+      assert_equal decision, result[:aws_decision]
+      assert_equal "aws_simulator", result[:reason]
+    end
+  end
+
+  def test_aws_validator_returns_unknown_for_missing_or_unsupported_decisions
+    [nil, "newDecision"].each do |decision|
+      result = aws_result(decision)
+      assert_equal "UNKNOWN", result[:status]
+      decision.nil? ? assert_nil(result[:aws_decision]) : assert_equal(decision, result[:aws_decision])
+      assert_equal "unsupported_or_missing_decision", result[:reason]
+    end
+  end
+
+  def test_aws_validator_returns_unknown_for_empty_results
+    client = Object.new
+    client.define_singleton_method(:simulate_custom_policy) { |**| Struct.new(:evaluation_results).new([]) }
+    result = CloudTwin::AwsValidator.new(client: client, live: true).validate(policy: policy("Effect" => "Allow"), action: "s3:GetObject", resource: BUCKET)
+    assert_equal "UNKNOWN", result[:status]
+    assert_equal "empty_response", result[:reason]
+    assert JSON.generate(result)
+  end
+
+  def test_aws_validator_returns_unknown_for_sdk_exceptions_without_raw_response
+    client = Object.new
+    client.define_singleton_method(:simulate_custom_policy) { |**| raise "simulator unavailable" }
+    result = CloudTwin::AwsValidator.new(client: client, live: true).validate(policy: policy("Effect" => "Allow"), action: "s3:GetObject", resource: BUCKET)
+    assert_equal "UNKNOWN", result[:status]
+    assert_equal "aws_sdk_error", result[:reason]
+    assert_equal "RuntimeError", result[:error]
+    refute result.key?(:raw)
+    assert JSON.generate(result)
+  end
+
+  def aws_result(decision)
+    response = Struct.new(:evaluation_results).new([Struct.new(:eval_decision).new(decision)])
     client = Object.new
     client.define_singleton_method(:simulate_custom_policy) do |**params|
       raise "unexpected policy" unless params[:action_names] == ["s3:GetObject"]
       response
     end
-    result = CloudTwin::AwsValidator.new(client: client, live: true).validate(policy: policy("Effect" => "Allow"), action: "s3:GetObject", resource: BUCKET)
-    assert_equal "ALLOWED", result[:status]
+    CloudTwin::AwsValidator.new(client: client, live: true).validate(policy: policy("Effect" => "Allow"), action: "s3:GetObject", resource: BUCKET)
   end
 end

@@ -8,13 +8,36 @@ def read_json(path)
 end
 
 command = ARGV.shift
+if command == "validate" && (ARGV.include?("--help") || ARGV.include?("-h"))
+  puts "usage: cloudtwin validate SCENARIO.json [--live]"
+  puts "       dry-run by default; --live calls IAM SimulateCustomPolicy"
+  exit 0
+elsif command == "compare" && (ARGV.include?("--help") || ARGV.include?("-h"))
+  puts "usage: cloudtwin compare BASELINE.json PROPOSED.json PRINCIPAL_ID [ACTION]"
+  exit 0
+elsif [nil, "help", "--help", "-h"].include?(command)
+  puts "usage: cloudtwin compare BASELINE.json PROPOSED.json PRINCIPAL_ID [ACTION]"
+  puts "       cloudtwin validate SCENARIO.json [--live]"
+  exit 0
+end
+
 case command
 when "compare"
   baseline = ARGV.shift
   proposed = ARGV.shift
   principal = ARGV.shift
   abort "usage: cloudtwin compare BASELINE.json PROPOSED.json PRINCIPAL_ID [ACTION]" unless baseline && proposed && principal
-  puts JSON.pretty_generate(CloudTwin::Counterfactual.compare(baseline: read_json(baseline), proposed: read_json(proposed), principal_id: principal, action: ARGV.shift || "s3:GetObject").map(&:to_h))
+  baseline_data = read_json(baseline)
+  begin
+    result = CloudTwin::Counterfactual.compare(baseline: baseline_data, proposed: read_json(proposed), principal_id: principal, action: ARGV.shift || "s3:GetObject")
+    puts JSON.pretty_generate(result.map(&:to_h))
+  rescue ArgumentError => error
+    if error.message.start_with?("unknown principal:")
+      available = Array(baseline_data["principals"]).map { |entry| entry["id"] }.compact
+      abort "#{error.message}. Available principals: #{available.join(', ')}"
+    end
+    raise
+  end
 when "validate"
   fixture = ARGV.shift
   live = ARGV.delete("--live")
