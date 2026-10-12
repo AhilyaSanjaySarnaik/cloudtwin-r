@@ -60,7 +60,12 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: eu-west-1
           retry-max-attempts: 2
-
       - name: Verify AWS identity
+        timeout-minutes: 2
         run: |
-          aws sts get-caller-identity
+          aws sts get-caller-identity \
+            --region eu-west-1 \
+            --cli-connect-timeout 5 \
+            --cli-read-timeout 10 \
+            --no-cli-pager
+  
