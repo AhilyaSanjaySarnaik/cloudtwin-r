@@ -10,49 +10,23 @@ permissions:
 
 jobs:
   verify-aws:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Diagnose GitHub OIDC identity
-        shell: bash
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler-cache: true
+
+      - name: Run automated tests
         run: |
-          python3 - <<'PY'
-          import os
-          import json
-          import base64
-          import urllib.request
-          import urllib.parse
-
-          url = os.environ["ACTIONS_ID_TOKEN_REQUEST_URL"]
-          token = os.environ["ACTIONS_ID_TOKEN_REQUEST_TOKEN"]
-
-          separator = "&" if "?" in url else "?"
-          url += separator + urllib.parse.urlencode({
-              "audience": "sts.amazonaws.com"
-          })
-
-          request = urllib.request.Request(
-              url,
-              headers={"Authorization": "Bearer " + token}
-          )
-
-          with urllib.request.urlopen(request) as response:
-              jwt = json.load(response)["value"]
-
-          payload = jwt.split(".")[1]
-          payload += "=" * (-len(payload) % 4)
-
-          claims = json.loads(
-              base64.urlsafe_b64decode(payload)
-          )
-
-          print("OIDC subject:", claims.get("sub"))
-          print("OIDC audience:", claims.get("aud"))
-          print("OIDC issuer:", claims.get("iss"))
-          PY
+          bundle exec ruby -Itest -e \
+            'Dir["test/test_*.rb"].sort.each { |f| require_relative f }'
 
       - name: Configure temporary AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -60,12 +34,25 @@ jobs:
           role-to-assume: ${{ vars.AWS_ROLE_ARN }}
           aws-region: eu-west-1
           retry-max-attempts: 2
+
       - name: Verify AWS identity
-        timeout-minutes: 2
+        run: aws sts get-caller-identity
+
+      - name: Run CloudTwin live validation
         run: |
-          aws sts get-caller-identity \
-            --region eu-west-1 \
-            --cli-connect-timeout 5 \
-            --cli-read-timeout 10 \
-            --no-cli-pager
-  
+          mkdir -p experiments/results
+          bundle exec ruby bin/cloudtwin validate \
+            fixtures/validation_scenario.json \
+            --live > experiments/results/aws-validation.json
+
+      - name: Display validation result
+        run: cat experiments/results/aws-validation.json
+
+      - name: Upload research artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudtwin-aws-validation
+          path: experiments/results/aws-validation.json
+          if-no-files-found: warn
+
