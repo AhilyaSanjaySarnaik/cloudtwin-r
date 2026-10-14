@@ -1,0 +1,81 @@
+{
+  "mode": "dry-run",
+  "validated_agreements": 0,
+  "scenarios": [
+    {
+      "scenario": "allow",
+      "description": "A matching Allow statement grants access.",
+      "action": "s3:GetObject",
+      "resource": "arn:aws:s3:::cloudtwin-public/report.json",
+      "local_status": "ALLOWED",
+      "local_reason": "explicit_allow",
+      "aws_status": null,
+      "aws_decision": null,
+      "aws_validation_status": "NOT_RUN",
+      "agreement": "NOT_VALIDATED",
+      "aws_reason": "not_run",
+      "aws_diagnostics": null,
+      "error": null
+    },
+    {
+      "scenario": "implicit_deny",
+      "description": "No statement applies, producing a known implicit Deny.",
+      "action": "s3:GetObject",
+      "resource": "arn:aws:s3:::cloudtwin-private/report.json",
+      "local_status": "DENIED",
+      "local_reason": "implicit_deny",
+      "aws_status": null,
+      "aws_decision": null,
+      "aws_validation_status": "NOT_RUN",
+      "agreement": "NOT_VALIDATED",
+      "aws_reason": "not_run",
+      "aws_diagnostics": null,
+      "error": null
+    },
+    {
+      "scenario": "explicit_deny",
+      "description": "An explicit Deny overrides a matching Allow.",
+      "action": "s3:GetObject",
+      "resource": "arn:aws:s3:::cloudtwin-private/restricted.json",
+      "local_status": "DENIED",
+      "local_reason": "explicit_deny",
+      "aws_status": null,
+      "aws_decision": null,
+      "aws_validation_status": "NOT_RUN",
+      "agreement": "NOT_VALIDATED",
+      "aws_reason": "not_run",
+      "aws_diagnostics": null,
+      "error": null
+    },
+    {
+      "scenario": "conditional_allow",
+      "description": "A supported StringEquals condition is satisfied by context.",
+      "action": "s3:PutObject",
+      "resource": "arn:aws:s3:::cloudtwin-ingest/input.json",
+      "local_status": "ALLOWED",
+      "local_reason": "explicit_allow",
+      "aws_status": null,
+      "aws_decision": null,
+      "aws_validation_status": "NOT_RUN",
+      "agreement": "NOT_VALIDATED",
+      "aws_reason": "not_run",
+      "aws_diagnostics": null,
+      "error": null
+    },
+    {
+      "scenario": "missing_condition_context",
+      "description": "The policy needs condition context that is intentionally absent.",
+      "action": "s3:DeleteObject",
+      "resource": "arn:aws:s3:::cloudtwin-private/report.json",
+      "local_status": "UNKNOWN",
+      "local_reason": "missing_or_unsupported_condition",
+      "aws_status": null,
+      "aws_decision": null,
+      "aws_validation_status": "NOT_RUN",
+      "agreement": "NOT_VALIDATED",
+      "aws_reason": "not_run",
+      "aws_diagnostics": null,
+      "error": null
+    }
+  ]
+}

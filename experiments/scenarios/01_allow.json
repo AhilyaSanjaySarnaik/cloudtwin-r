@@ -1,0 +1,8 @@
+{
+  "id": "allow",
+  "description": "A matching Allow statement grants access.",
+  "policy": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "s3:GetObject", "Resource": "arn:aws:s3:::cloudtwin-public/*"}]},
+  "action": "s3:GetObject",
+  "resource": "arn:aws:s3:::cloudtwin-public/report.json",
+  "context": {}
+}

@@ -30,16 +30,27 @@ module CloudTwin
       result = results.first
       aws_decision = result.respond_to?(:eval_decision) ? result.eval_decision : nil
       status = DECISION_STATUS[aws_decision.to_s]
-      return report(status: "UNKNOWN", reason: "unsupported_or_missing_decision", aws_decision: aws_decision) unless status
+      diagnostics = simulator_diagnostics(result)
+      return report(status: "UNKNOWN", reason: "unsupported_or_missing_decision", aws_decision: aws_decision, diagnostics: diagnostics) unless status
 
-      report(status: status, reason: "aws_simulator", aws_decision: aws_decision)
+      report(status: status, reason: "aws_simulator", aws_decision: aws_decision, diagnostics: diagnostics)
     end
 
     private
 
-    def report(status:, reason:, aws_decision: nil, error: nil)
+    def simulator_diagnostics(result)
+      missing = if result.respond_to?(:missing_context_values)
+                  Array(result.missing_context_values).map(&:to_s)
+                else
+                  []
+                end
+      { missing_context_values: missing }
+    end
+
+    def report(status:, reason:, aws_decision: nil, error: nil, diagnostics: nil)
       result = { status: status, reason: reason, aws_decision: aws_decision }
       result[:error] = error if error
+      result[:diagnostics] = diagnostics if diagnostics
       result
     end
   end

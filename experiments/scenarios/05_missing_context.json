@@ -1,0 +1,8 @@
+{
+  "id": "missing_condition_context",
+  "description": "The policy needs condition context that is intentionally absent.",
+  "policy": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "s3:DeleteObject", "Resource": "arn:aws:s3:::cloudtwin-private/*", "Condition": {"StringEquals": {"aws:PrincipalTag/approval": "approved"}}}]},
+  "action": "s3:DeleteObject",
+  "resource": "arn:aws:s3:::cloudtwin-private/report.json",
+  "context": {}
+}

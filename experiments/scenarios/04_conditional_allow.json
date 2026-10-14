@@ -1,0 +1,8 @@
+{
+  "id": "conditional_allow",
+  "description": "A supported StringEquals condition is satisfied by context.",
+  "policy": {"Version": "2012-10-17", "Statement": [{"Effect": "Allow", "Action": "s3:PutObject", "Resource": "arn:aws:s3:::cloudtwin-ingest/*", "Condition": {"StringEquals": {"aws:PrincipalTag/team": "research"}}}]},
+  "action": "s3:PutObject",
+  "resource": "arn:aws:s3:::cloudtwin-ingest/input.json",
+  "context": {"aws:PrincipalTag/team": "research"}
+}

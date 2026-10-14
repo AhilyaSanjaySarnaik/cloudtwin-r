@@ -3,6 +3,12 @@ name: CloudTwin AWS Validation
 
 on:
   workflow_dispatch:
+    inputs:
+      run_live_benchmark:
+        description: Run the Phase 4 live IAM benchmark
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -48,6 +54,22 @@ jobs:
       - name: Display validation result
         run: cat experiments/results/aws-validation.json
 
+      - name: Run CloudTwin Phase 4 live benchmark
+        if: ${{ inputs.run_live_benchmark == true }}
+        run: |
+          mkdir -p experiments/results
+          bundle exec ruby experiments/benchmark.rb --live
+
+      - name: Upload Phase 4 benchmark reports
+        if: ${{ always() && inputs.run_live_benchmark == true }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudtwin-phase4-benchmark
+          path: |
+            experiments/results/benchmark.json
+            experiments/results/benchmark.csv
+          if-no-files-found: warn
+
       - name: Upload research artifact
         if: always()
         uses: actions/upload-artifact@v4
@@ -55,4 +77,3 @@ jobs:
           name: cloudtwin-aws-validation
           path: experiments/results/aws-validation.json
           if-no-files-found: warn
-

@@ -1,0 +1,6 @@
+scenario,local_status,local_reason,aws_status,aws_decision,aws_validation_status,agreement,aws_reason,error
+allow,ALLOWED,explicit_allow,,,NOT_RUN,NOT_VALIDATED,not_run,
+implicit_deny,DENIED,implicit_deny,,,NOT_RUN,NOT_VALIDATED,not_run,
+explicit_deny,DENIED,explicit_deny,,,NOT_RUN,NOT_VALIDATED,not_run,
+conditional_allow,ALLOWED,explicit_allow,,,NOT_RUN,NOT_VALIDATED,not_run,
+missing_condition_context,UNKNOWN,missing_or_unsupported_condition,,,NOT_RUN,NOT_VALIDATED,not_run,
